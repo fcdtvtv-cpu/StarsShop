@@ -1,18 +1,16 @@
 import asyncio
-import random
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, BotCommand
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiocryptopay import AioCryptoPay, Networks
-import os
 
-# === БЕРЕМ ТОКЕНЫ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ (БЕЗОПАСНО) ===
-BOT_TOKEN = os.getenv("BOT_TOKEN", "ТВОЙ_ТОКЕН_ЕСЛИ_ЗАПУСКАЕШЬ_ЛОКАЛЬНО")
-CRYPTO_TOKEN = os.getenv("CRYPTO_TOKEN", "ТОКЕН_CRYPTOBOT_ЕСЛИ_ЛОКАЛЬНО")
-ADMIN_ID = int(os.getenv("ADMIN_ID", 123456789))
-# ==========================================================
+# === ВСТАВЬ СВОИ ДАННЫЕ СЮДА ===
+BOT_TOKEN = "676329:AAQ6kv9CscawAVxnMA7p8ukzLw3j3a13YPG" 
+CRYPTO_TOKEN = "ВСТАВЬ_ТОКЕН_ИЗ_CRYPTOBOT"                
+ADMIN_ID = 123456789                                      
+# ===============================
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -21,19 +19,17 @@ crypto = None
 class CustomStars(StatesGroup):
     waiting_for_amount = State()
 
-# --- ПОСТОЯННОЕ МЕНЮ ВНИЗУ (Кнопки) ---
 def get_reply_menu():
     kb = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="🔥 Купить звезды"), KeyboardButton(text="🛡 Отзывы")],
+            [KeyboardButton(text="🔥 Купить звезды")],
             [KeyboardButton(text="🆘 Поддержка")]
         ],
         resize_keyboard=True,
-        input_field_placeholder="Выберите действие или введите число..."
+        input_field_placeholder="Выберите действие..."
     )
     return kb
 
-# --- ИНЛАЙН МЕНЮ (Кнопки под сообщением) ---
 def get_inline_menu():
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔥 100 Stars - 100₽", callback_data="buy_100")],
@@ -47,66 +43,34 @@ def get_inline_menu():
 async def start_cmd(message: types.Message, state: FSMContext):
     await state.clear()
     
-    # Устанавливаем меню команд (чтобы слева внизу было "Меню")
-    await bot.set_my_commands([
-        BotCommand(command="start", description="🏠 Главное меню")
-    ])
+    await bot.set_my_commands([BotCommand(command="start", description="🏠 Главное меню")])
     
     text = (
         "🌟 <b>Добро пожаловать в наш магазин Telegram Stars!</b>\n\n"
         "⚡️ Моментальная выдача.\n"
         "🛡 Безопасная сделка через Telegram Wallet.\n\n"
-        "👇 Выберите товар в меню ниже или нажмите «Купить звезды»:"
+        "👇 Выберите товар или нажмите «Купить звезды» внизу:"
     )
-    # Отправляем сообщение с постоянными кнопками внизу
     await message.answer(text, reply_markup=get_reply_menu(), parse_mode="HTML")
-    # И сразу отправляем витрину с инлайн-кнопками
     await message.answer("Выберите пакет:", reply_markup=get_inline_menu())
 
-# --- ОБРАБОТКА ТЕКСТОВЫХ КНОПОК ---
 @dp.message(F.text == "🔥 Купить звезды")
 async def buy_stars_msg(message: types.Message):
     await message.answer("Выберите пакет или введите свое количество:", reply_markup=get_inline_menu())
-
-@dp.message(F.text == "🛡 Отзывы")
-async def reviews_msg(message: types.Message):
-    names = ["Артем", "Даниил", "Игорь", "Максим", "Егор", "Кирилл", "Влад"]
-    products = ["100 Stars", "500 Stars", "1000 Stars", "250 Stars"]
-    texts = [
-        "Брал вчера, все пришло моментально, спасибо!",
-        "Сначала думал развод, но нет, звезды упали через 5 минут.",
-        "Дешевле чем в официальном магазине, буду брать еще.",
-        "Все четко, оплата через СБП прошла.",
-        "Спасибо, выручили. Скинул друзьям ваш бот."
-    ]
-    fake_reviews = ""
-    for _ in range(4):
-        fake_reviews += f"⭐️⭐️⭐️⭐️⭐️ <b>{random.choice(names)}</b> купил {random.choice(products)}\n<i>“{random.choice(texts)}”</i>\n\n"
-        
-    await message.answer(
-        f"🛡 <b>Последние отзывы:</b>\n\n{fake_reviews}"
-        f"📊 Рейтинг: <b>4.9 / 5</b> (На основе 124 отзывов)",
-        parse_mode="HTML",
-        reply_markup=get_reply_menu()
-    )
 
 @dp.message(F.text == "🆘 Поддержка")
 async def support_msg(message: types.Message):
     await message.answer(
         "🆘 <b>Служба поддержки</b>\n\n"
-        "Если у вас возникли вопросы, напишите менеджеру: @Твой_Левый_Аккаунт\n\n"
+        "Если у вас возникли вопросы по оплате, напишите менеджеру: @Твой_Левый_Аккаунт\n\n"
         "Время ответа: от 1 до 5 минут.",
         parse_mode="HTML",
         reply_markup=get_reply_menu()
     )
 
-# --- ОБРАБОТКА ИНЛАЙН-КНОПОК ---
 @dp.callback_query(F.data == "custom_amount")
 async def ask_custom_amount(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(
-        "✍️ <b>Введите количество звезд числом:</b>\n"
-        "(Например: 250, 3500 и т.д.)"
-    )
+    await callback.message.edit_text("✍️ <b>Введите количество звезд числом:</b>\n(Например: 250, 3500 и т.д.)", parse_mode="HTML")
     await state.set_state(CustomStars.waiting_for_amount)
     await callback.answer()
 
@@ -180,7 +144,8 @@ async def check_payment(callback: types.CallbackQuery):
             await callback.message.edit_text(
                 f"✅ <b>Платеж успешно получен!</b>\n\n"
                 f"Ваш заказ на <b>{stars} Stars</b> принят в обработку.\n"
-                f"Ожидайте зачисления в течение 15-20 минут."
+                f"Ожидайте зачисления в течение 15-20 минут.",
+                parse_mode="HTML"
             )
             
             admin_text = (
