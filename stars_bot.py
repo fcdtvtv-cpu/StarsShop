@@ -8,9 +8,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiocryptopay import AioCryptoPay, Networks
 
 # === ТВОИ ДАННЫЕ ===
-BOT_TOKEN = "9294499145:AAHlvTDfUygtKdWOv-wkzc87zJWjIIyMrKs"
-CRYPTO_TOKEN = "676333:AAWZrw12sSgzF6xatY9sbQ2yjlKlW7rFb9V"
-ADMIN_ID = 6447962745 # Твой ID цифрами
+
 # ==================
 
 bot = Bot(token=BOT_TOKEN)
