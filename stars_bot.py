@@ -1,4 +1,5 @@
 import asyncio
+import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, BotCommand
@@ -6,11 +7,17 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiocryptopay import AioCryptoPay, Networks
 
-# === ВСТАВЬ СВОИ ДАННЫЕ СЮДА ===
-BOT_TOKEN = "676329:AAQ6kv9CscawAVxnMA7p8ukzLw3j3a13YPG" 
-CRYPTO_TOKEN = "ВСТАВЬ_ТОКЕН_ИЗ_CRYPTOBOT"                
-ADMIN_ID = 123456789                                      
-# ===============================
+# === БЕРЕМ ДАННЫЕ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ (БЕЗОПАСНО) ===
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CRYPTO_TOKEN = os.getenv("CRYPTO_TOKEN")
+ADMIN_ID_STR = os.getenv("ADMIN_ID")
+
+# Защита от падения, если переменные не заданы
+if not BOT_TOKEN or not CRYPTO_TOKEN or not ADMIN_ID_STR:
+    raise ValueError("ОШИБКА: Не заданы переменные окружения BOT_TOKEN, CRYPTO_TOKEN или ADMIN_ID!")
+
+ADMIN_ID = int(ADMIN_ID_STR) # Превращаем строку в число
+# ==========================================================
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
