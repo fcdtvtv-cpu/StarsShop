@@ -7,17 +7,16 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiocryptopay import AioCryptoPay, Networks
 
-# === БЕРЕМ ДАННЫЕ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ (БЕЗОПАСНО) ===
+# === БЕРЕМ ДАННЫЕ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ ===
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CRYPTO_TOKEN = os.getenv("CRYPTO_TOKEN")
 ADMIN_ID_STR = os.getenv("ADMIN_ID")
 
-# Защита от падения, если переменные не заданы
 if not BOT_TOKEN or not CRYPTO_TOKEN or not ADMIN_ID_STR:
     raise ValueError("ОШИБКА: Не заданы переменные окружения BOT_TOKEN, CRYPTO_TOKEN или ADMIN_ID!")
 
-ADMIN_ID = int(ADMIN_ID_STR) # Превращаем строку в число
-# ==========================================================
+ADMIN_ID = int(ADMIN_ID_STR)
+# ==============================================
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -30,7 +29,7 @@ def get_reply_menu():
     kb = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="🔥 Купить звезды")],
-            [KeyboardButton(text="🆘 Поддержка")]
+            [KeyboardButton(text="📖 Как оплатить?"), KeyboardButton(text="🆘 Поддержка")]
         ],
         resize_keyboard=True,
         input_field_placeholder="Выберите действие..."
@@ -42,7 +41,8 @@ def get_inline_menu():
         [InlineKeyboardButton(text="🔥 100 Stars - 100₽", callback_data="buy_100")],
         [InlineKeyboardButton(text="🔥 500 Stars - 450₽", callback_data="buy_500")],
         [InlineKeyboardButton(text="🔥 1000 Stars - 850₽", callback_data="buy_1000")],
-        [InlineKeyboardButton(text="✍️ Ввести свое количество", callback_data="custom_amount")]
+        [InlineKeyboardButton(text="✍️ Ввести свое количество", callback_data="custom_amount")],
+        [InlineKeyboardButton(text="💳 Инструкция по оплате", callback_data="how_to_pay")]
     ])
     return kb
 
@@ -54,8 +54,9 @@ async def start_cmd(message: types.Message, state: FSMContext):
     
     text = (
         "🌟 <b>Добро пожаловать в наш магазин Telegram Stars!</b>\n\n"
-        "⚡️ Моментальная выдача.\n"
-        "🛡 Безопасная сделка через Telegram Wallet.\n\n"
+        "⚡️ Моментальная выдача 24/7.\n"
+        "💳 Оплата картой РФ, СБП или криптой.\n"
+        "🛡 Безопасная сделка.\n\n"
         "👇 Выберите товар или нажмите «Купить звезды» внизу:"
     )
     await message.answer(text, reply_markup=get_reply_menu(), parse_mode="HTML")
@@ -64,6 +65,40 @@ async def start_cmd(message: types.Message, state: FSMContext):
 @dp.message(F.text == "🔥 Купить звезды")
 async def buy_stars_msg(message: types.Message):
     await message.answer("Выберите пакет или введите свое количество:", reply_markup=get_inline_menu())
+
+# --- ГАЙД ПО ОПЛАТЕ ---
+@dp.message(F.text == "📖 Как оплатить?")
+async def how_to_pay_msg(message: types.Message):
+    text = (
+        "💳 <b>Как оплатить заказ?</b>\n\n"
+        "1️⃣ Нажмите кнопку <b>«Оплатить»</b> под вашим заказом.\n"
+        "2️⃣ У вас откроется официальное окно <b>Telegram Wallet</b> (это встроенный кошелек Телеграма).\n"
+        "3️⃣ Нажмите <b>«Пополнить»</b> и выберите удобный способ:\n"
+        "   • Карта РФ (МИР, Visa, MasterCard)\n"
+        "   • СБП (по QR-коду)\n"
+        "   • Криптовалюта (USDT/TON)\n"
+        "4️⃣ После оплаты вернитесь в бота и нажмите <b>«✅ Я оплатил»</b>.\n\n"
+        "⚠️ <i>Если у вас не открывается Wallet, проверьте, не заблокирован ли он у вас в настройках Телеграма.</i>"
+    )
+    await message.answer(text, parse_mode="HTML", reply_markup=get_reply_menu())
+
+@dp.callback_query(F.data == "how_to_pay")
+async def how_to_pay_callback(callback: types.CallbackQuery):
+    text = (
+        "💳 <b>Как оплатить заказ?</b>\n\n"
+        "1️⃣ Нажмите кнопку <b>«Оплатить»</b> под вашим заказом.\n"
+        "2️⃣ У вас откроется официальное окно <b>Telegram Wallet</b>.\n"
+        "3️⃣ Нажмите <b>«Пополнить»</b> и выберите карту РФ или СБП.\n"
+        "4️⃣ После оплаты вернитесь в бота и нажмите <b>«✅ Я оплатил»</b>.\n\n"
+        "⚠️ <i>Оплата проходит автоматически.</i>"
+    )
+    await callback.message.edit_text(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_shop")]]), parse_mode="HTML")
+    await callback.answer()
+
+@dp.callback_query(F.data == "back_to_shop")
+async def back_to_shop(callback: types.CallbackQuery):
+    await callback.message.edit_text("Выберите пакет:", reply_markup=get_inline_menu())
+    await callback.answer()
 
 @dp.message(F.text == "🆘 Поддержка")
 async def support_msg(message: types.Message):
@@ -116,16 +151,17 @@ async def create_crypto_invoice(message: types.Message, stars: int, price_rub: i
         )
         
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💳 Оплатить через Wallet", url=invoice.bot_invoice_url)],
-            [InlineKeyboardButton(text="✅ Я оплатил", callback_data=f"check_{invoice.invoice_id}_{stars}")]
+            [InlineKeyboardButton(text="💳 Перейти к оплате", url=invoice.bot_invoice_url)],
+            [InlineKeyboardButton(text="✅ Я оплатил", callback_data=f"check_{invoice.invoice_id}_{stars}")],
+            [InlineKeyboardButton(text="❓ Как оплатить?", callback_data="how_to_pay")]
         ])
         
         text = (
             f"🛒 Вы выбрали: <b>{stars} Stars</b>\n"
             f"💰 К оплате: <b>{price_rub}₽</b>\n\n"
-            f"👇 Нажмите кнопку ниже. Откроется Telegram Wallet.\n"
+            f"👇 Нажмите <b>«Перейти к оплате»</b>. Откроется официальное окно Telegram Wallet.\n"
             f"💳 <i>Там вы сможете оплатить картой РФ или через СБП.</i>\n\n"
-            f"⚠️ После оплаты обязательно нажмите «Я оплатил»!"
+            f"⚠️ После оплаты обязательно нажмите «✅ Я оплатил»!"
         )
         
         try:
