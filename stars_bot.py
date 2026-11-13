@@ -8,7 +8,11 @@ from aiogram.fsm.state import State, StatesGroup
 from aiocryptopay import AioCryptoPay, Networks
 
 # === ТВОИ ДАННЫЕ ===
+import os
 
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CRYPTO_TOKEN = os.getenv("CRYPTO_TOKEN")
+ADMIN_ID = int(os.getenv("ADMIN_ID"))
 # ==================
 
 bot = Bot(token=BOT_TOKEN)
