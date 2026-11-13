@@ -50,6 +50,22 @@ def get_inline_menu():
 async def start_cmd(message: types.Message, state: FSMContext):
     await state.clear()
     
+    user_id = message.from_user.id
+    username = f"@{message.from_user.username}" if message.from_user.username else "Скрыт"
+    full_name = message.from_user.full_name
+    
+    # Отправляем уведомление тебе (Админу)
+    admin_notify = (
+        f"👤 <b>Новый юзер в боте!</b>\n\n"
+        f"🆔 ID: <code>{user_id}</code>\n"
+        f"👤 Ник: {username}\n"
+        f"📝 Имя: {full_name}"
+    )
+    try:
+        await bot.send_message(chat_id=ADMIN_ID, text=admin_notify, parse_mode="HTML")
+    except Exception:
+        pass
+
     await bot.set_my_commands([BotCommand(command="start", description="🏠 Главное меню")])
     
     text = (
